@@ -48,6 +48,9 @@ TIM_HandleTypeDef htim4;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+
+
+
 int ServPosition =0;
 bool direction=true;
 uint8_t zeroValues[3]={100,100,100};
@@ -66,12 +69,27 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void SetDirection(bool dir)
+{
+	GPIOB->ODR &=~(1<<12);
+	if(dir)GPIOB->ODR |=(1<<12);
+}
+void SelectDriver(uint8_t value)
+{
+	value&=0x07;
+	GPIOB->ODR &=~(0x07<<13);
+	GPIOB->ODR |=(value<<13);
+}
 void SetServoPosition(uint8_t  *position)
 {
 
 	TIM4->CCR1=position[0];//50+((position[0]>190)?190:position[0]);
 	TIM4->CCR2=position[1];//50+((position[1]>190)?190:position[1]);
 	TIM3->CCR2=position[2];//50+((position[2]>190)?190:position[2]);
+	TIM4->CCR3=(position[3]<<8)+position[4];
+	SetDirection(position[5]);
+	SelectDriver(position[6]);
+
 
 }
 //===========================================================================================================
@@ -80,7 +98,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	uint8_t               RxData[8];
 	CAN_RxHeaderTypeDef   RxHeader;
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
-  printf("header=%d \n",RxData[0]);
+//  printf("header=%d \n",RxData[0]);
 	if(RxHeader.StdId!=0x281)return;
 	  SetServoPosition(RxData);
 //	  CanSend(0x12);
@@ -219,6 +237,7 @@ int main(void)
   HAL_Delay(3000);
 	 CanSend(0x11);
 //	 HAL_TIM_Base_Start_IT(&htim1);
+	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
 	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
 	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 	 HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
@@ -435,6 +454,10 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
@@ -482,11 +505,22 @@ static void MX_USART1_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, CW_CCW_Pin|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : CW_CCW_Pin SHUTDOWN_SELECT0_Pin SHUTDOWN_SELECT1_Pin SHUTDOWN_SELECT3_Pin */
+  GPIO_InitStruct.Pin = CW_CCW_Pin|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 

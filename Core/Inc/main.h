@@ -60,6 +60,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define CW_CCW_Pin GPIO_PIN_12
+#define CW_CCW_GPIO_Port GPIOB
+#define SHUTDOWN_SELECT0_Pin GPIO_PIN_13
+#define SHUTDOWN_SELECT0_GPIO_Port GPIOB
+#define SHUTDOWN_SELECT1_Pin GPIO_PIN_14
+#define SHUTDOWN_SELECT1_GPIO_Port GPIOB
+#define SHUTDOWN_SELECT3_Pin GPIO_PIN_15
+#define SHUTDOWN_SELECT3_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
