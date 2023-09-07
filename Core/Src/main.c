@@ -52,8 +52,10 @@ UART_HandleTypeDef huart1;
 
 
 int ServPosition =0;
+int counter=0;
+int tetvalue=0;
 bool direction=true;
-uint8_t zeroValues[3]={100,100,100};
+uint8_t zeroValues[7]={100,100,100,0x05,5,0,1};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -223,6 +225,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  SelectDriver(0);
   HAL_Delay(1000);
 
   if (HAL_CAN_Start(&hcan) != HAL_OK)
@@ -233,17 +236,43 @@ int main(void)
   else{
 	  printf("can start ok!!!!!\n");
   }
- HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-  HAL_Delay(3000);
-	 CanSend(0x11);
+
 //	 HAL_TIM_Base_Start_IT(&htim1);
 	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
 	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
 	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 	 HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-	 SetServoPosition(zeroValues);
+//	 SetServoPosition(zeroValues);
+//	 HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+//	  HAL_Delay(3000);
+//		 CanSend(0x11);
+
+	  TIM4->CCR3=1900;
+
   while (1)
   {
+
+	  if(counter++>400){
+		  counter=0;
+	  }
+	  TIM4->CCR3=50;
+	  if(counter<200)TIM4->CCR3=1900;
+
+	  for(int i=0;i<6;i++)
+	  {
+		  HAL_Delay(2);
+			 SelectDriver(i);
+	  }
+//	  HAL_Delay(3000);
+//	  TIM4->CCR3=300;
+//	  for(int i=0;i<6;i++)
+//	  {
+//		  HAL_Delay(4);
+//			 SelectDriver(i);
+//	  }
+//	  HAL_Delay(3000);
+
+
 
     /* USER CODE END WHILE */
 
@@ -513,10 +542,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, CW_CCW_Pin|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : CW_CCW_Pin SHUTDOWN_SELECT0_Pin SHUTDOWN_SELECT1_Pin SHUTDOWN_SELECT3_Pin */
-  GPIO_InitStruct.Pin = CW_CCW_Pin|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin;
+  /*Configure GPIO pins : PB12 SHUTDOWN_SELECT0_Pin SHUTDOWN_SELECT1_Pin SHUTDOWN_SELECT3_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_12|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
