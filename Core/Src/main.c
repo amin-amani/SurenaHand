@@ -90,13 +90,22 @@ void SelectDriver(uint8_t value)
 }
 void SetServoPosition(uint8_t  *position)
 {
-
+//	printf("r= %d %d %d \n",(uint32_t)position[0],(uint32_t)position[1],(uint32_t)position[2]);
+//from 50 to 250
 	TIM4->CCR1=position[0];//50+((position[0]>190)?190:position[0]);
 	TIM4->CCR2=position[1];//50+((position[1]>190)?190:position[1]);
 	TIM3->CCR2=position[2];//50+((position[2]>190)?190:position[2]);
 	TIM4->CCR3=(position[3]<<8)+position[4];
 	SetDirection(position[5]);
 	SelectDriver(position[6]);
+
+
+}
+
+
+void SetPalmSpeed(uint8_t  pwm, uint8_t index )
+{
+	TIM4->CCR3=pwm;
 
 
 }
@@ -277,6 +286,7 @@ int main(void)
 			init(i+1);
 			HAL_Delay(100);
 		}
+		TIM4->CCR3=180;
   while (1)
   {
 
@@ -291,7 +301,7 @@ int main(void)
 
 
 
-				printf("sensor:%d pressure=%f  temp=%f \n",i+1,readPressure(i+1),readTemperature(i+1));
+//				printf("sensor:%d pressure=%f  temp=%f \n",i+1,readPressure(i+1),readTemperature(i+1));
 				finaltemp=0;
 				finalpressure=0;
 				final_humidity=0;
