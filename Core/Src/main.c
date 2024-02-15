@@ -24,10 +24,10 @@
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
 /* USER CODE END Includes */
-#include "BME.h"
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+#include "BME.h"
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -506,7 +506,7 @@ void CanSend(uint32_t id)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	float tfloat;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -538,28 +538,50 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_Delay(1000);
-
-  if (HAL_CAN_Start(&hcan) != HAL_OK)
-    {
-      /* Start Error */
-	  printf("can start error\n");
-    }
-  else{
-	  printf("can start ok!!!!!\n");
-  }
- HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-  HAL_Delay(3000);
-	 CanSend(0x11);
-//	 HAL_TIM_Base_Start_IT(&htim1);
-	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
-	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
-	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
-	 HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-	 SetServoPosition(zeroValues);
+//  HAL_Delay(1000);
+//
+//  if (HAL_CAN_Start(&hcan) != HAL_OK)
+//    {
+//      /* Start Error */
+//	  printf("can start error\n");
+//    }
+//  else{
+//	  printf("can start ok!!!!!\n");
+//  }
+// HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+//  HAL_Delay(3000);
+//	 CanSend(0x11);
+////	 HAL_TIM_Base_Start_IT(&htim1);
+//	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+//	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+//	 HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+//	 HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+//	 SetServoPosition(zeroValues);
+		for(i=0;i<6;i++)
+		{
+			init(i+1);
+			HAL_Delay(100);
+		}
   while (1)
   {
+		for(i=0;i<6;i++){
+				tfloat= readTemperature(i+1);
 
+				tfloat*=10;
+				finaltemp=tfloat;
+
+				tfloat=readPressure(i+1);
+				tfloat*=10;
+				p_fine=tfloat;
+
+
+				printf("sensor:%d pressure=%f  temp=%f \n",i+1,readPressure(i+1),readTemperature(i+1));
+				finaltemp=0;
+				finalpressure=0;
+				final_humidity=0;
+				HAL_Delay(10);
+
+			}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -869,7 +891,15 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, CW_CCW_Pin|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|GPIO_PIN_11|CW_CCW_Pin|SHUTDOWN_SELECT0_Pin
+                          |SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin|GPIO_PIN_9, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PB10 PB11 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CW_CCW_Pin SHUTDOWN_SELECT0_Pin SHUTDOWN_SELECT1_Pin SHUTDOWN_SELECT3_Pin */
   GPIO_InitStruct.Pin = CW_CCW_Pin|SHUTDOWN_SELECT0_Pin|SHUTDOWN_SELECT1_Pin|SHUTDOWN_SELECT3_Pin;
