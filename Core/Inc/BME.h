@@ -1,5 +1,8 @@
 #ifndef BME_H
 #define BME_H
+#include <inttypes.h>
+#include <stdbool.h>
+#include  "stm32f1xx_hal.h"
 
 #define CTRLMEASREG 0x74
 #define CTRLMEASVAL 0x25
@@ -119,5 +122,38 @@ void BME280_CONFIG_SETUP(int);
 void BME280_GET_COMP_VALS(int);
 void BME280_GET_RAW_VALS(int index);
 void BME280_CALC_FINAL_VALS(void);
+void SelectSensor(int8_t index);
+void SpiWrite(uint8_t index,uint8_t *data,int len);
+
+void SPIReadWrite(uint8_t index,uint8_t *txBuffer,uint8_t txLen,uint8_t *rxBuffer,uint8_t rxLen);
+void BME280_CONFIG_SETUP(int index);
+
+void BME280_GET_COMP_VALS(int index);
+
+void BME280_GET_RAW_VALS(int index);
+void BME280_CALC_FINAL_VALS();
+bool write8(int8_t reg,uint8_t val,int index);
+
+uint8_t read8(int8_t reg,int index);
+
+uint32_t read24(int8_t reg,int index);
+
+int32_t read16(uint8_t reg,int index);
+
+uint16_t read16_LE(uint8_t reg,int index);
+int16_t readS16_LE(uint8_t reg,int index);
+
+void readCoefficients(int index);
+
+float readTemperature(int index);
+
+void setSampling(int index,uint8_t mode,
+		uint8_t tempSampling,
+		uint8_t pressSampling,
+		uint8_t filter,
+		uint8_t duration);
+float readPressure(int index);
+
+bool init(int index);
 
 #endif
