@@ -43,6 +43,9 @@ static int32_t finalpressure, final_humidity = 0;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 CAN_HandleTypeDef hcan;
 
 SPI_HandleTypeDef hspi1;
@@ -57,20 +60,24 @@ UART_HandleTypeDef huart1;
 
 
 int ServPosition =0;
+bool CanFalg=0;
+uint8_t ReceivedMsgCount=0;
 bool direction=true;
 uint8_t zeroValues[3]={100,100,100};
-
-
+uint16_t ADCResult[3];
+uint8_t TestCanMessage[8]={0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_CAN_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -113,12 +120,22 @@ void SetPalmSpeed(uint8_t  pwm, uint8_t index )
 //===========================================================================================================
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
+
 	uint8_t               RxData[8];
 	CAN_RxHeaderTypeDef   RxHeader;
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
-//  printf("header=%d \n",RxData[0]);
+  printf("header=%d \n",RxHeader.StdId);
+
+//	CreateBuuffer(TestCanMessage, readPressure(2*index+1),readPressure(2*index+2));
+//	CreateBuuffer(TestCanMessage, 111.123,222.333);
+//	CanSendData(0x180+index ,TestCanMessage);
+//	index++;
+//	if(index==3)index=0;
+  ReceivedMsgCount++;
+  CanFalg=1;
 	if(RxHeader.StdId!=0x281)return;
-	  SetServoPosition(RxData);
+	 SetServoPosition(RxData);
+
 //	  CanSend(0x12);
 }
 //===========================================================================================================
@@ -221,6 +238,48 @@ void CanSend(uint32_t id)
 		  printf("can send error\n");
 	  }
 }
+
+
+void CanSendData(uint32_t id,uint8_t *data)
+{
+	CAN_TxHeaderTypeDef   TxHeader;
+	CAN_RxHeaderTypeDef   RxHeader;
+//	uint8_t               TxData[8];
+
+	uint32_t              TxMailbox;
+	  /*##-4- Start the Transmission process #####################################*/
+	  TxHeader.StdId =id;
+	  TxHeader.RTR = CAN_RTR_DATA;
+	  TxHeader.IDE = CAN_ID_STD;
+	  TxHeader.DLC = 8;
+	  TxHeader.TransmitGlobalTime = DISABLE;
+//	  TxData[0] = 0xCA;
+//	  TxData[1] = 0xFE;
+
+	  /* Request transmission */
+	//  if(HAL_CAN_AddTxMessage(hcan, TxHeader, aData, pTxMailbox)(hcan, TxMailboxes), TxMailboxes))
+	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, data, &TxMailbox) != HAL_OK)
+	  {
+	    /* Transmission request Error */
+		  printf("can send error\n");
+	  }
+}
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+//	__NOP();
+	  printf("adc=%d %d %d\n",ADCResult[0],ADCResult[1],ADCResult[2]);
+
+}
+void CreateBuuffer(uint8_t* buffer, float a , float b)
+{
+    // Assuming each floating-point number is 4 bytes long (single precision)
+    uint32_t a_uint = *((uint32_t*)&a); // Convert float to its binary representation
+    uint32_t b_uint = *((uint32_t*)&b);
+
+    // Copy the binary representation of 'a' and 'b' into the buffer
+    memcpy(buffer, &a_uint, sizeof(float));
+    memcpy(buffer + sizeof(float), &b_uint, sizeof(float));
+}
 //===========================================================================================================
 /* USER CODE END 0 */
 
@@ -252,11 +311,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_CAN_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -292,15 +353,40 @@ int main(void)
   while (1)
   {
 
-	  for(i=0;i<6;i++)
-	  {
-		  printf("%d\n",i);
-		  SelectDriver(i);
-			TIM4->CCR3=1800;
-			HAL_Delay(1);
-			//TIM4->CCR3=700;
-			//HAL_Delay(1);
+//	  for(i=0;i<6;i++)
+//	  {
+////		  printf("%d\n",i);
+//		  SelectDriver(i);
+//			TIM4->CCR3=1800;
+//			HAL_Delay(1);
+//			readPressure(i+1);
+//			//TIM4->CCR3=700;
+//			//HAL_Delay(1);
+//
+//
+//	  }
+	  if(CanFalg){
+		 CreateBuuffer(TestCanMessage,
+				 readPressure(2*(ReceivedMsgCount%3)+1)
+				 ,readPressure(2*(ReceivedMsgCount%3)+2));
+	  	CanSendData(0x180+(ReceivedMsgCount%3) ,TestCanMessage);
+	    printf("send=%d \n",ReceivedMsgCount);
+	  	CanFalg=0;
 	  }
+
+//		CreateBuuffer(TestCanMessage, 333.456, 444.987);
+//	    CanSendData(0x180 ,TestCanMessage);
+//			HAL_Delay(200);
+//			CreateBuuffer(TestCanMessage, 555.456, 666.987);
+//			CanSendData(0x181 ,TestCanMessage);
+//			HAL_Delay(200);
+//			CreateBuuffer(TestCanMessage, 777.456, 888.987);
+//			CanSendData(0x182 ,TestCanMessage);
+//	  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADCResult, 2);
+
+	 // HAL_Delay(200);
+
+
 //	  for(i=0;i<6;i++)
 //	 	  {
 //
@@ -341,6 +427,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -370,6 +457,68 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 2;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -615,6 +764,22 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 
 }
 
