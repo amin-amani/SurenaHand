@@ -77,10 +77,10 @@ static void MX_SPI1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void SetDirection(bool dir)
+void SetDirection(uint8_t dir)
 {
 	GPIOB->ODR &=~(1<<12);
-	if(dir)GPIOB->ODR |=(1<<12);
+	if(dir!=0)GPIOB->ODR |=(1<<12);
 }
 void SelectDriver(uint8_t value)
 {
@@ -90,6 +90,7 @@ void SelectDriver(uint8_t value)
 }
 void SetServoPosition(uint8_t  *position)
 {
+	printf("p5= %d \n",(uint32_t)position[5]);
 //	printf("r= %d %d %d \n",(uint32_t)position[0],(uint32_t)position[1],(uint32_t)position[2]);
 //from 50 to 250
 	TIM4->CCR1=position[0];//50+((position[0]>190)?190:position[0]);
@@ -286,28 +287,45 @@ int main(void)
 			init(i+1);
 			HAL_Delay(100);
 		}
-		TIM4->CCR3=180;
+		TIM4->CCR3=1700;
+		SelectDriver(1);
   while (1)
   {
 
-		for(i=0;i<6;i++){
-				tfloat= readTemperature(i+1);
-
-				tfloat*=10;
-				finaltemp=tfloat;
-
-				tfloat=readPressure(i+1);
-				tfloat*=10;
-
-
-
-//				printf("sensor:%d pressure=%f  temp=%f \n",i+1,readPressure(i+1),readTemperature(i+1));
-				finaltemp=0;
-				finalpressure=0;
-				final_humidity=0;
-				HAL_Delay(10);
-
-			}
+	  for(i=0;i<6;i++)
+	  {
+		  printf("%d\n",i);
+		  SelectDriver(i);
+			TIM4->CCR3=1800;
+			HAL_Delay(1);
+			//TIM4->CCR3=700;
+			//HAL_Delay(1);
+	  }
+//	  for(i=0;i<6;i++)
+//	 	  {
+//
+//	 			TIM4->CCR3=1700;
+//	 			SelectDriver(i+6);
+//	 			HAL_Delay(3000);
+//	 	  }
+//		for(i=0;i<6;i++){
+//				tfloat= readTemperature(i+1);
+//
+//				tfloat*=10;
+//				finaltemp=tfloat;
+//
+//				tfloat=readPressure(i+1);
+//				tfloat*=10;
+//
+//
+//
+////				printf("sensor:%d pressure=%f  temp=%f \n",i+1,readPressure(i+1),readTemperature(i+1));
+//				finaltemp=0;
+//				finalpressure=0;
+//				final_humidity=0;
+//				HAL_Delay(10);
+//
+//			}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
