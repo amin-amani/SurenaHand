@@ -120,19 +120,23 @@ void SetPalmSpeed(uint8_t  pwm, uint8_t index )
 //===========================================================================================================
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-
+	static uint8_t debounce=0;
 	uint8_t               RxData[8];
 	CAN_RxHeaderTypeDef   RxHeader;
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
-  printf("header=%d \n",RxHeader.StdId);
+  // printf("header=%d \n",RxHeader.StdId);
 
 //	CreateBuuffer(TestCanMessage, readPressure(2*index+1),readPressure(2*index+2));
 //	CreateBuuffer(TestCanMessage, 111.123,222.333);
 //	CanSendData(0x180+index ,TestCanMessage);
 //	index++;
 //	if(index==3)index=0;
-  ReceivedMsgCount++;
-  CanFalg=1;
+	if(debounce++>4)
+	{
+	debounce=0;
+	ReceivedMsgCount++;
+	CanFalg=1;
+	}
 	if(RxHeader.StdId!=0x281)return;
 	 SetServoPosition(RxData);
 
